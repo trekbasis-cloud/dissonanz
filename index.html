@@ -60,6 +60,14 @@
     padding-left:max(14px, env(safe-area-inset-left));
     padding-right:max(14px, env(safe-area-inset-right));
     backdrop-filter:blur(2px);
+    transition:transform 0.22s ease, opacity 0.22s ease;
+    will-change:transform;
+  }
+
+  .logbar.is-hidden{
+    transform:translateY(-100%);
+    opacity:0;
+    pointer-events:none;
   }
 
   .logbar-title{
@@ -460,6 +468,28 @@
   document.getElementById('btn-de').addEventListener('click', function(){ setLang('de'); });
   document.getElementById('btn-en').addEventListener('click', function(){ setLang('en'); });
 
+  // ---------- HEADER BEIM LESEN AUS-/EINBLENDEN ----------
+  // Beim Herunterscrollen verschwindet die Kopfzeile, beim Hochscrollen kommt sie zurück.
+  var logbar = document.querySelector('.logbar');
+  var lastScrollY = Math.max(window.scrollY || 0, 0);
+
+  function updateLogbarVisibility(){
+    var y = Math.max(window.scrollY || 0, 0);
+
+    // Am Seitenanfang bleibt die Kopfzeile immer sichtbar.
+    if (y <= 32){
+      logbar.classList.remove('is-hidden');
+    } else if (y > lastScrollY + 2){
+      // Leser scrollt nach unten.
+      logbar.classList.add('is-hidden');
+    } else if (y < lastScrollY - 2){
+      // Leser scrollt nach oben.
+      logbar.classList.remove('is-hidden');
+    }
+
+    lastScrollY = y;
+  }
+
   // ---------- SCROLL-TRACKING FÜR SENSOR-LEISTE ----------
   var ticking = false;
 
@@ -488,6 +518,7 @@
     if (!ticking){
       window.requestAnimationFrame(function(){
         updateSensorRail();
+        updateLogbarVisibility();
         ticking = false;
       });
       ticking = true;
@@ -511,6 +542,7 @@
   // ---------- INIT ----------
   buildStrip();
   updateSensorRail();
+  updateLogbarVisibility();
 })();
 </script>
 
