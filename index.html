@@ -26,6 +26,11 @@
     --font-ui:'Eurostile','Antonio','Arial Narrow',sans-serif;
     --strip-width: min(100%, 560px);
   }
+@media (hover: none) and (pointer: coarse) {
+  :root {
+    --strip-width: 100vw;
+  }
+}
 
   @font-face{
     font-family:'Jefferies';
