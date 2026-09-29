@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05070a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DISSONANZ">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="../icon-180.png">
+
+<title>DISSONANZ — Teil II: Anomalie</title>
+
+<style>
+  :root{
+    --void:#05070a;
+    --panel-bg:#0c1016;
+    --amber:#e8a33d;
+    --amber-dim:#7a5a26;
+    --steel:#5c7a8c;
+    --steel-bright:#8fc4dd;
+    --alert:#c8453a;
+    --text-main:#e9edf0;
+    --text-dim:#7c8a93;
+    --font-display:'Jefferies','Eurostile Extended','Orbitron',sans-serif;
+    --font-ui:'Eurostile','Antonio','Arial Narrow',sans-serif;
+    --strip-width:min(100%, 560px);
+  }
+
+  @media (max-width:1024px){
+    :root{
+      --strip-width:100vw;
+    }
+  }
+
+  @font-face{
+    font-family:'Jefferies';
+    src:local('Jefferies'), local('Jefferies Extended');
+    font-weight:normal;
+  }
+
+  *{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+  }
+
+  html,body{
+    background:var(--void);
+    color:var(--text-main);
+    font-family:var(--font-ui);
+    width:100%;
+    min-width:0;
+    overflow-x:hidden;
+    -webkit-text-size-adjust:100%;
+  }
+
+  /* ---------- HEADER / LOGBOOK BAR ---------- */
+
+  .logbar{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    z-index:50;
+
+    min-height:56px;
+    height:calc(56px + env(safe-area-inset-top));
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(5,7,10,0.97) 0%,
+        rgba(5,7,10,0.85) 80%,
+        transparent 100%
+      );
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+
+    padding-top:env(safe-area-inset-top);
+    padding-left:max(14px, env(safe-area-inset-left));
+    padding-right:max(14px, env(safe-area-inset-right));
+
+    backdrop-filter:blur(2px);
+
+    transition:
+      transform 0.22s ease,
+      opacity 0.22s ease;
+
+    will-change:transform;
+  }
+
+  .logbar.is-hidden{
+    transform:translateY(-100%);
+    opacity:0;
+    pointer-events:none;
+  }
+
+  .logbar-title{
+    display:flex;
+    flex-direction:column;
+    line-height:1;
+    min-width:0;
+    flex:1 1 auto;
+  }
+
+  .logbar-title .name{
+    font-family:var(--font-display);
+    letter-spacing:0.12em;
+    font-size:18px;
+    color:var(--steel-bright);
+    text-transform:uppercase;
+  }
+
+  .logbar-title .sub{
+    font-size:10px;
+    letter-spacing:0.18em;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    margin-top:2px;
+  }
+
+  .lang-toggle{
+    display:flex;
+    flex:0 0 auto;
+    border:1px solid var(--amber-dim);
+    border-radius:2px;
+    overflow:hidden;
+  }
+
+  .lang-btn{
+    appearance:none;
+    border:none;
+    background:transparent;
+    color:var(--text-dim);
+
+    font-family:var(--font-ui);
+    font-size:12px;
+    letter-spacing:0.1em;
+
+    padding:7px 12px;
+    cursor:pointer;
+
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+
+  .lang-btn.active{
+    background:var(--amber);
+    color:#1a1304;
+    font-weight:600;
+  }
+
+  .lang-btn:not(.active):hover{
+    color:var(--steel-bright);
+  }
+
+  /* ---------- SENSOR PROGRESS RAIL ---------- */
+
+  .sensor-rail{
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+
+    width:14px;
+    z-index:40;
+
+    display:flex;
+    flex-direction:column;
+
+    padding:
+      calc(60px + env(safe-area-inset-top))
+      0
+      calc(24px + env(safe-area-inset-bottom))
+      0;
+
+    pointer-events:none;
+  }
+
+  .sensor-seg{
+    flex:1;
+
+    margin:1px 3px;
+
+    background:rgba(92,122,140,0.18);
+
+    border-radius:1px;
+
+    transition:background 0.3s ease;
+  }
+
+  .sensor-seg.lit{
+    background:var(--steel-bright);
+
+    box-shadow:
+      0 0 6px rgba(143,196,221,0.6);
+  }
+
+  .sensor-seg.current{
+    background:var(--amber);
+
+    box-shadow:
+      0 0 8px rgba(232,163,61,0.8);
+  }
+
+  .sensor-readout{
+    position:fixed;
+
+    left:18px;
+
+    bottom:
+      calc(14px + env(safe-area-inset-bottom));
+
+    z-index:40;
+
+    font-size:10px;
+
+    letter-spacing:0.08em;
+
+    color:var(--text-dim);
+
+    font-family:var(--font-ui);
+  }
+
+  .sensor-readout .num{
+    color:var(--amber);
+    font-weight:600;
+  }
+
+  /* ---------- READER STRIP ---------- */
+
+  .reader{
+    width:100%;
+
+    padding-top:
+      calc(56px + env(safe-area-inset-top));
+
+    display:flex;
+
+    justify-content:center;
+  }
+
+  .strip{
+    width:var(--strip-width);
+    min-width:0;
+
+    display:flex;
+
+    flex-direction:column;
+  }
+
+  .panel{
+    width:100%;
+
+    aspect-ratio:1080/1920;
+
+    background:var(--panel-bg);
+
+    display:block;
+
+    position:relative;
+
+    overflow:hidden;
+  }
+
+  .panel img{
+    width:100%;
+    height:100%;
+
+    display:block;
+
+    object-fit:cover;
+  }
+
+  /* Platzhalter-Optik, bis echte Panels eingebunden sind */
+
+  .panel.placeholder{
+    background:
+      repeating-linear-gradient(
+        135deg,
+        rgba(92,122,140,0.06) 0 2px,
+        transparent 2px 14px
+      ),
+      linear-gradient(
+        160deg,
+        #10151c 0%,
+        #0a0d12 100%
+      );
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    border-top:
+      1px solid rgba(92,122,140,0.12);
+  }
+
+  .ph-label{
+    display:none;
+  }
+
+  .panel.placeholder .ph-label{
+    display:block;
+
+    font-family:var(--font-display);
+
+    font-size:15px;
+
+    letter-spacing:0.15em;
+
+    color:var(--text-dim);
+
+    text-align:center;
+
+    text-transform:uppercase;
+  }
+
+  .panel.placeholder .ph-label .ph-num{
+    display:block;
+
+    font-size:34px;
+
+    color:var(--amber-dim);
+
+    margin-bottom:6px;
+  }
+
+  /* Markierung an nicht-nahtlosen Übergängen */
+
+  .panel.seam-break{
+    border-top:2px solid var(--alert);
+  }
+
+  /* ---------- END CARD ---------- */
+
+  .end-card{
+    width:100%;
+
+    padding:60px 20px 100px;
+
+    text-align:center;
+  }
+
+  .end-card .line{
+    font-family:var(--font-display);
+
+    color:var(--steel-bright);
+
+    letter-spacing:0.12em;
+
+    font-size:13px;
+
+    text-transform:uppercase;
+  }
+
+  .end-card .sub{
+    margin-top:10px;
+
+    font-size:11px;
+
+    color:var(--text-dim);
+
+    letter-spacing:0.06em;
+  }
+
+  /* ---------- RESPONSIVE / FOCUS ---------- */
+
+  .lang-btn:focus-visible,
+  button:focus-visible{
+    outline:2px solid var(--steel-bright);
+    outline-offset:2px;
+  }
+
+  /* Kleine Smartphones */
+
+  @media (max-width:420px){
+
+    .logbar{
+      gap:8px;
+
+      padding-left:
+        max(10px, env(safe-area-inset-left));
+
+      padding-right:
+        max(10px, env(safe-area-inset-right));
+    }
+
+    .logbar-title .name{
+      font-size:16px;
+      letter-spacing:0.09em;
+    }
+
+    .logbar-title .sub{
+      font-size:9px;
+      letter-spacing:0.12em;
+    }
+
+    .lang-btn{
+      font-size:11px;
+      padding:7px 9px;
+    }
+
+    .sensor-readout{
+      left:16px;
+      font-size:9px;
+    }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{
+      transition:none !important;
+    }
+  }
+
+</style>
+</head>
+
+<body>
+
+  <div class="logbar">
+
+    <div class="logbar-title">
+
+      <span
+        class="name"
+        id="title-text"
+      >
+        DISSONANZ
+      </span>
+
+      <span
+        class="sub"
+        id="subtitle-text"
+      >
+        Teil II · Anomalie
+      </span>
+
+    </div>
+
+    <div
+      class="lang-toggle"
+      role="group"
+      aria-label="Sprache"
+    >
+
+      <button
+        class="lang-btn active"
+        data-lang="de"
+        id="btn-de"
+      >
+        DE
+      </button>
+
+      <button
+        class="lang-btn"
+        data-lang="en"
+        id="btn-en"
+      >
+        EN
+      </button>
+
+    </div>
+
+  </div>
+
+  <div
+    class="sensor-rail"
+    id="sensor-rail"
+    aria-hidden="true"
+  ></div>
+
+  <div class="sensor-readout">
+
+    PANEL
+
+    <span
+      class="num"
+      id="panel-readout"
+    >
+      00001
+    </span>
+
+    /
+
+    <span id="panel-total">
+      00092
+    </span>
+
+  </div>
+
+  <div class="reader">
+
+    <div
+      class="strip"
+      id="strip"
+    ></div>
+
+  </div>
+
+<script>
+
+(function(){
+
+  /* ---------- KONFIGURATION ---------- */
+
+  /* Teil II enthält 92 Panels pro Sprache. */
+
+  /* Dateien:
+     images/00001_de.webp
+     images/00001_en.webp
+     ...
+     images/00092_de.webp
+     images/00092_en.webp
+  */
+
+  var TOTAL_PANELS = 92;
+
+  var IMAGE_DIR = 'images/';
+
+  var PAD_LENGTH = 5;
+
+  /* Übergänge, die später eventuell markiert werden sollen */
+
+  var SEAM_BREAKS = [];
+
+  var currentLang = 'de';
+
+  var strip =
+    document.getElementById('strip');
+
+  var sensorRail =
+    document.getElementById('sensor-rail');
+
+  var panelReadout =
+    document.getElementById('panel-readout');
+
+  var panelTotalEl =
+    document.getElementById('panel-total');
+
+  panelTotalEl.textContent =
+    String(TOTAL_PANELS)
+      .padStart(PAD_LENGTH,'0');
+
+  var panelEls = [];
+
+  function padPanelNumber(n){
+
+    return String(n)
+      .padStart(PAD_LENGTH,'0');
+
+  }
+
+  /* ---------- PANELS ERZEUGEN ---------- */
+
+  function buildStrip(){
+
+    strip.innerHTML = '';
+
+    panelEls = [];
+
+    for(
+      var i = 1;
+      i <= TOTAL_PANELS;
+      i++
+    ){
+
+      var wrapper =
+        document.createElement('div');
+
+      wrapper.className =
+        'panel placeholder';
+
+      if(
+        SEAM_BREAKS.indexOf(i) !== -1
+      ){
+
+        wrapper.classList.add(
+          'seam-break'
+        );
+
+      }
+
+      wrapper.dataset.panel = i;
+
+      var img =
+        document.createElement('img');
+
+      img.alt =
+        'Panel ' + padPanelNumber(i);
+
+      img.style.display =
+        'none';
+
+      img.onload = function(){
+
+        this
+          .parentElement
+          .classList
+          .remove('placeholder');
+
+        this.style.display =
+          'block';
+
+      };
+
+      img.onerror = function(){
+
+        /* Bild fehlt:
+           Platzhalter bleibt sichtbar */
+
+      };
+
+      var label =
+        document.createElement('div');
+
+      label.className =
+        'ph-label';
+
+      label.innerHTML =
+        '<span class="ph-num">'
+        + padPanelNumber(i)
+        + '</span>Panel wird geladen …';
+
+      wrapper.appendChild(label);
+
+      wrapper.appendChild(img);
+
+      strip.appendChild(wrapper);
+
+      panelEls.push({
+
+        wrapper:wrapper,
+
+        img:img,
+
+        num:i
+
+      });
+
+    }
+
+    buildSensorRail();
+
+    loadVisibleImages();
+
+  }
+
+  /* ---------- SENSORLEISTE ---------- */
+
+  function buildSensorRail(){
+
+    sensorRail.innerHTML = '';
+
+    for(
+      var i = 1;
+      i <= TOTAL_PANELS;
+      i++
+    ){
+
+      var seg =
+        document.createElement('div');
+
+      seg.className =
+        'sensor-seg';
+
+      seg.dataset.panel =
+        i;
+
+      sensorRail.appendChild(seg);
+
+    }
+
+  }
+
+  /* ---------- BILDER LADEN ---------- */
+
+  var observer = null;
+
+  function setLanguageSources(){
+
+    if(observer){
+
+      observer.disconnect();
+
+    }
+
+    panelEls.forEach(
+      function(p){
+
+        p.img.removeAttribute('src');
+
+        p.img.style.display =
+          'none';
+
+        p.wrapper.classList.add(
+          'placeholder'
+        );
+
+        p.loaded =
+          false;
+
+      }
+    );
+
+    setupObserver();
+
+  }
+
+  function loadPanelImage(p){
+
+    if(p.loaded){
+
+      return;
+
+    }
+
+    p.loaded =
+      true;
+
+    var src =
+      IMAGE_DIR
+      + padPanelNumber(p.num)
+      + '_'
+      + currentLang
+      + '.webp';
+
+    p.img.src =
+      src;
+
+  }
+
+  function setupObserver(){
+
+    observer =
+      new IntersectionObserver(
+
+        function(entries){
+
+          entries.forEach(
+            function(entry){
+
+              if(
+                entry.isIntersecting
+              ){
+
+                var num =
+                  parseInt(
+                    entry
+                      .target
+                      .dataset
+                      .panel,
+                    10
+                  );
+
+                var p =
+                  panelEls[num - 1];
+
+                if(p){
+
+                  loadPanelImage(p);
+
+                }
+
+              }
+
+            }
+          );
+
+        },
+
+        {
+
+          root:null,
+
+          rootMargin:
+            '1200px 0px 1200px 0px',
+
+          threshold:0.01
+
+        }
+
+      );
+
+    panelEls.forEach(
+      function(p){
+
+        observer.observe(
+          p.wrapper
+        );
+
+      }
+    );
+
+  }
+
+  function loadVisibleImages(){
+
+    setLanguageSources();
+
+  }
+
+  /* ---------- SPRACHUMSCHALTER ---------- */
+
+  var i18n = {
+
+    de:{
+      title:'DISSONANZ',
+      sub:'Teil II · Anomalie'
+    },
+
+    en:{
+      title:'DISSONANCE',
+      sub:'Part II · Anomaly'
+    }
+
+  };
+
+  function setLang(lang){
+
+    currentLang =
+      lang;
+
+    document
+      .getElementById('btn-de')
+      .classList
+      .toggle(
+        'active',
+        lang === 'de'
+      );
+
+    document
+      .getElementById('btn-en')
+      .classList
+      .toggle(
+        'active',
+        lang === 'en'
+      );
+
+    document
+      .getElementById('title-text')
+      .textContent =
+        i18n[lang].title;
+
+    document
+      .getElementById('subtitle-text')
+      .textContent =
+        i18n[lang].sub;
+
+    document
+      .documentElement
+      .lang =
+        lang;
+
+    document.title =
+      lang === 'de'
+
+      ? 'DISSONANZ — Teil II: Anomalie'
+
+      : 'DISSONANCE — Part II: Anomaly';
+
+    try{
+
+      localStorage.setItem(
+        'dissonanz-lang',
+        lang
+      );
+
+    }
+    catch(e){}
+
+    setLanguageSources();
+
+  }
+
+  document
+    .getElementById('btn-de')
+    .addEventListener(
+      'click',
+      function(){
+
+        setLang('de');
+
+      }
+    );
+
+  document
+    .getElementById('btn-en')
+    .addEventListener(
+      'click',
+      function(){
+
+        setLang('en');
+
+      }
+    );
+
+  /* ---------- HEADER ---------- */
+
+  var logbar =
+    document.querySelector(
+      '.logbar'
+    );
+
+  var lastScrollY =
+    Math.max(
+      window.scrollY || 0,
+      0
+    );
+
+  function updateLogbarVisibility(){
+
+    var y =
+      Math.max(
+        window.scrollY || 0,
+        0
+      );
+
+    if(y <= 32){
+
+      logbar.classList.remove(
+        'is-hidden'
+      );
+
+    }
+    else if(
+      y > lastScrollY + 2
+    ){
+
+      logbar.classList.add(
+        'is-hidden'
+      );
+
+    }
+    else if(
+      y < lastScrollY - 2
+    ){
+
+      logbar.classList.remove(
+        'is-hidden'
+      );
+
+    }
+
+    lastScrollY =
+      y;
+
+  }
+
+  /* ---------- SCROLL-TRACKING ---------- */
+
+  var ticking =
+    false;
+
+  function updateSensorRail(){
+
+    var viewportCenter =
+      window.scrollY
+      + window.innerHeight
+      * 0.4;
+
+    var current =
+      1;
+
+    for(
+      var i = 0;
+      i < panelEls.length;
+      i++
+    ){
+
+      var rect =
+        panelEls[i]
+          .wrapper
+          .getBoundingClientRect();
+
+      var top =
+        rect.top
+        + window.scrollY;
+
+      if(
+        top <= viewportCenter
+      ){
+
+        current =
+          panelEls[i].num;
+
+      }
+
+    }
+
+    panelReadout.textContent =
+      padPanelNumber(current);
+
+    var segs =
+      sensorRail.children;
+
+    for(
+      var s = 0;
+      s < segs.length;
+      s++
+    ){
+
+      var segNum =
+        s + 1;
+
+      segs[s]
+        .classList
+        .remove(
+          'lit',
+          'current'
+        );
+
+      if(
+        segNum < current
+      ){
+
+        segs[s]
+          .classList
+          .add('lit');
+
+      }
+      else if(
+        segNum === current
+      ){
+
+        segs[s]
+          .classList
+          .add('current');
+
+      }
+
+    }
+
+  }
+
+  window.addEventListener(
+
+    'scroll',
+
+    function(){
+
+      if(!ticking){
+
+        window.requestAnimationFrame(
+
+          function(){
+
+            updateSensorRail();
+
+            updateLogbarVisibility();
+
+            ticking =
+              false;
+
+          }
+
+        );
+
+        ticking =
+          true;
+
+      }
+
+    },
+
+    {
+      passive:true
+    }
+
+  );
+
+  /* ---------- APP / PWA ---------- */
+
+  try{
+
+    var savedLang =
+      localStorage.getItem(
+        'dissonanz-lang'
+      );
+
+    if(
+      savedLang === 'en'
+    ){
+
+      setLang('en');
+
+    }
+
+  }
+  catch(e){}
+
+  if(
+    'serviceWorker'
+    in navigator
+
+    &&
+
+    (
+      location.protocol === 'https:'
+
+      ||
+
+      location.hostname === 'localhost'
+    )
+  ){
+
+    window.addEventListener(
+
+      'load',
+
+      function(){
+
+        navigator
+          .serviceWorker
+          .register(
+            '../service-worker.js'
+          )
+          .catch(
+            function(){
+
+              /* Reader funktioniert
+                 auch ohne Service Worker */
+
+            }
+          );
+
+      }
+
+    );
+
+  }
+
+  /* ---------- INIT ---------- */
+
+  buildStrip();
+
+  updateSensorRail();
+
+  updateLogbarVisibility();
+
+})();
+
+</script>
+
+<script
+  data-goatcounter="https://dissonanz-trekbasis.goatcounter.com/count"
+  async
+  src="//gc.zgo.at/count.js">
+</script>
+
+</body>
+</html>
